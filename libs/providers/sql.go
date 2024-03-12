@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"github.com/SZabrodskii/microservices/libs/providers/config"
+	_ "github.com/jackc/pgx/v5/pgconn"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	_ "gorm.io/driver/postgres"
@@ -30,15 +31,6 @@ type zapLogger struct {
 }
 
 func (z *zapLogger) Info(_ context.Context, msg string, fields ...interface{}) {
-	//zapFields := make([]zap.Field, 0)
-	//for key, field := range fields {
-	//	rt := reflect.ValueOf(field).Kind().String()
-	//	switch rt.(type) {
-	//	case string:
-	//		zapFields = append(zapFields, zap.String(key.(string), field.(string)))
-	//	}
-	//	//
-	//}
 	z.log.Info(msg, zap.Any("fields", fields))
 }
 
@@ -73,14 +65,13 @@ func newZapLogger(log *zap.Logger) *zapLogger {
 	}
 }
 
-func NewPostgreSQLProvider(cfg config.PostgreSQLParams, log *zap.Logger, options ...*PostgreSQLProviderOptions) (*PostgreSQLProvider, error) {
+func NewPostgreSQLProvider(cfg config.PostgreSQLConfig, log *zap.Logger, options ...*PostgreSQLProviderOptions) (*PostgreSQLProvider, error) {
 	var (
 		dialector gorm.Dialector
 		err       error
 		conn      *gorm.DB
 		opts      *gorm.Config
 	)
-	opts.Logger = newZapLogger(log)
 
 	if len(options) > 0 {
 		if options[0].DB != nil {
@@ -91,17 +82,48 @@ func NewPostgreSQLProvider(cfg config.PostgreSQLParams, log *zap.Logger, options
 		}
 	}
 
-	dsn := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable", cfg.Username, cfg.Password, cfg.Database)
+	dsn := fmt.Sprintf("%s user=%s password=%s dbname=%s", cfg.GetDSN(), cfg.GetUsername(), cfg.GetPassword(), cfg.GetDB())
 
-	if cfg.SSLConfig != nil {
-		dsn += fmt.Sprintf(" sslmode=enabled sslcertificate=%s sslrootcertificate=%s", cfg.SSLConfig.GetSSLCertificate(), cfg.SSLConfig.GetSSLRootCertificate())
-	}
+	//if cfg.GetTLSConfig() != nil {
+	//	p := &PostgreSQLProvider{}
+	//	tlsConfig, err := p.getSSLCertificate(cfg.GetTLSConfig().GetTLSCertificate(), cfg.GetTLSConfig().GetTLSRootCertificate())
+	//	if err != nil {
+	//		return nil, fmt.Errorf("error setting up TLS config: %v", err)
+	//	}
+	//	tlsCertString := string(tlsConfig.Certificates[0].Certificate[0])
+	//	rootCertString := string(tlsConfig.RootCAs.AddCert()[0])
+	//
+	//	dsn += fmt.Sprintf(" sslcert=%s sslkey=%s sslrootcert=%s", tlsCertString, tlsCertString, rootCertString)
+	//	d, _ := sql.Open("", "")
+	//	d.Driver()
+	//	dialector = postgres.New(postgres.Config{
+	//		DSN: dsn,
+	//	})
+	//} else {
+	//	dialector = postgres.Open(dsn)
+	//}
+
 	dialector = postgres.Open(dsn)
 
+	if opts == nil {
+		opts = &gorm.Config{}
+	}
+
+	opts.Logger = newZapLogger(log)
 	conn, err = gorm.Open(dialector, opts)
 	if err != nil {
 		return nil, fmt.Errorf("an error occured while trying to connect the db: %v", err)
 	}
+
+	sql, err := conn.DB()
+	if err != nil {
+		return nil, fmt.Errorf("an error occured while trying to getting the db: %v", err)
+	}
+
+	if err = sql.Ping(); err != nil {
+		return nil, fmt.Errorf("canot ping db: %v", err)
+	}
+
 	return &PostgreSQLProvider{
 		db: conn,
 	}, nil
@@ -126,7 +148,7 @@ func (p *PostgreSQLProvider) getSSLCertificate(certificatePath, rootCertificateP
 	rootCertificates, err := x509.ParseCertificates(rootCertificate)
 	if err != nil {
 
-		return nil, fmt.Errorf("Error parsing root certificate:", err)
+		return nil, fmt.Errorf("Error parsing root certificate: %v", err)
 	}
 
 	tlsConfig := &tls.Config{RootCAs: x509.NewCertPool()}

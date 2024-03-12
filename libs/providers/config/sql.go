@@ -1,30 +1,36 @@
 package config
 
+import (
+	"fmt"
+)
+
 type PostgreSQLConfig interface {
 	GetDSN() string
-	GetUserParams() string
+	GetUsername() string
 	GetPassword() string
 	GetDB() string
+	GetTLSConfig() *TLSConfig
 }
 
 type PostgreSQLParams struct {
-	DSN       string
-	Username  string
-	Password  string
-	Database  string
-	SSLConfig *SSLConfig
+	Host     string
+	Port     int
+	Username string
+	Password string
+	Database string
+	TLS      *TLSConfig
 }
 
-type SSLConfig struct {
-	SSLCertificate     string
-	SSLRootCertificate string
+type TLSConfig struct {
+	TLSCertificate     string
+	TLSRootCertificate string
 }
 
 func (p *PostgreSQLParams) GetDSN() string {
-	return p.DSN
+	return fmt.Sprintf("host=%s, port=%d", p.Host, p.Port)
 }
 
-func (p *PostgreSQLParams) GetUserName() string {
+func (p *PostgreSQLParams) GetUsername() string {
 	return p.Username
 }
 
@@ -36,10 +42,14 @@ func (p *PostgreSQLParams) GetDB() string {
 	return p.Database
 }
 
-func (s *SSLConfig) GetSSLCertificate() string {
-	return s.SSLCertificate
+func (p *PostgreSQLParams) GetTLSConfig() *TLSConfig {
+	return p.TLS
 }
 
-func (s *SSLConfig) GetSSLRootCertificate() string {
-	return s.SSLRootCertificate
+func (s *TLSConfig) GetTLSCertificate() string {
+	return s.TLSCertificate
+}
+
+func (s *TLSConfig) GetTLSRootCertificate() string {
+	return s.TLSRootCertificate
 }

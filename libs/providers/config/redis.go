@@ -1,6 +1,7 @@
 package config
 
 import (
+	_ "github.com/SZabrodskii/microservices/libs/providers"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -47,27 +48,40 @@ type RedisProvider interface {
 	Client() *redis.Client
 }
 
+// ======================================== Redis Sentinel ============================================================
+
 type RedisSentinelParams struct {
 	MasterName       string
-	Nodes            []string
-	Password         string
+	Hosts            []string
+	RedisPassword    string
 	SentinelPassword string
 	DB               int
+}
+
+type RedisSentinelConfig interface {
+	GetMasterName() string
+	GetHosts() []string
+	GetPassword() string
+	GetSentinelPassword() string
+	GetDB() int
 }
 
 func (rsp *RedisSentinelParams) GetMasterName() string {
 	return rsp.MasterName
 }
 
-func (rsp *RedisSentinelParams) GetNodes() []string {
-	return rsp.Nodes
+func (rsp *RedisSentinelParams) GetHosts() []string {
+	return rsp.Hosts
 }
 
 func (rsp *RedisSentinelParams) GetPassword() string {
-	return rsp.Password
+	return rsp.RedisPassword
 }
 
 func (rsp *RedisSentinelParams) GetSentinelPassword() string {
+	if rsp.SentinelPassword == "" {
+		return rsp.RedisPassword
+	}
 	return rsp.SentinelPassword
 }
 
@@ -75,35 +89,9 @@ func (rsp *RedisSentinelParams) GetDB() int {
 	return rsp.DB
 }
 
-type RedisSentinelConfig interface {
-	GetMasterName() string
-	GetNodes() []string
-	GetPassword() string
-	GetSentinelPassword() string
-	GetDB() int
-}
+//================================================ Redis Client ======================================================
 
-type RedisClient struct {
-	Options *redis.Options
-}
+//================================================= TLS Config =======================================================
 
-func NewRedisClient(params RedisConfig, options ...*redis.Options) (*RedisClient, error) {
-	var opts redis.Options
-	if options[0] != nil {
-		opts = *options[0]
-	}
-
-	opts.Addr = params.GetDSN()
-
-	return &RedisClient{
-		Options: &redis.Options{
-			Addr:     params.GetDSN(),
-			Password: params.GetPassword(),
-			DB:       params.GetDB(),
-		},
-	}, nil
-}
-
-func (rc *RedisClient) Client() *redis.Client {
-	return redis.NewClient(rc.Options)
+type TLSConfig struct {
 }

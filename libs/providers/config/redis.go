@@ -1,7 +1,6 @@
 package config
 
 import (
-	_ "github.com/SZabrodskii/microservices/libs/providers"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -11,12 +10,22 @@ type RedisParams struct {
 	Port     string
 	Password string
 	DB       int
-	Config   *redis.Options
+	Options  *redis.Options
+	TLS      TLSConfig
+}
+
+type RedisConfig interface {
+	GetDSN() string
+	GetPassword() string
+	GetDB() int
+	GetOptions() *redis.Options
+	GetTLSConfig() TLSConfig
 }
 
 func (rp *RedisParams) GetDSN() string {
 	if rp.DSN == "" {
 		rp.DSN = rp.Host + ":" + rp.Port
+		//rp.DSN = fmt.Sprintf("host=%s, port=%d", rp.Host, rp.Port)
 	}
 	return rp.DSN
 }
@@ -30,68 +39,17 @@ func (rp *RedisParams) GetDB() int {
 }
 
 func (rp *RedisParams) GetOptions() *redis.Options {
-	if rp.Config != nil {
-		return rp.Config
+	if rp.Options != nil {
+		return rp.Options
 	}
 
 	return &redis.Options{}
 }
 
-type RedisConfig interface {
-	GetDSN() string
-	GetPassword() string
-	GetDB() int
-	GetOptions() *redis.Options
+func (rp *RedisParams) GetTLSConfig() TLSConfig {
+	return rp.TLS
 }
 
 type RedisProvider interface {
 	Client() *redis.Client
-}
-
-// ======================================== Redis Sentinel ============================================================
-
-type RedisSentinelParams struct {
-	MasterName       string
-	Hosts            []string
-	RedisPassword    string
-	SentinelPassword string
-	DB               int
-}
-
-type RedisSentinelConfig interface {
-	GetMasterName() string
-	GetHosts() []string
-	GetPassword() string
-	GetSentinelPassword() string
-	GetDB() int
-}
-
-func (rsp *RedisSentinelParams) GetMasterName() string {
-	return rsp.MasterName
-}
-
-func (rsp *RedisSentinelParams) GetHosts() []string {
-	return rsp.Hosts
-}
-
-func (rsp *RedisSentinelParams) GetPassword() string {
-	return rsp.RedisPassword
-}
-
-func (rsp *RedisSentinelParams) GetSentinelPassword() string {
-	if rsp.SentinelPassword == "" {
-		return rsp.RedisPassword
-	}
-	return rsp.SentinelPassword
-}
-
-func (rsp *RedisSentinelParams) GetDB() int {
-	return rsp.DB
-}
-
-//================================================ Redis Client ======================================================
-
-//================================================= TLS Config =======================================================
-
-type TLSConfig struct {
 }

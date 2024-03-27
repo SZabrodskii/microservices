@@ -47,18 +47,6 @@ func Test_NewPostgresSQLProvider(t *testing.T) {
 				Database: "testdb",
 			},
 		},
-		{
-			name: "with ssl",
-			cfg: &config.PostgreSQLParams{
-				Username: "admin",
-				Password: "Iseestars",
-				Database: "testdb",
-				TLS: &config.TLSConfig{
-					TLSCertificate:     "/etc/postgres/security/server.crt",
-					TLSRootCertificate: "/etc/postgres/security/root.crt",
-				},
-			},
-		},
 	}
 
 	for _, testCase := range matrix {

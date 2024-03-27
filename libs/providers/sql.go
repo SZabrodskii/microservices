@@ -17,8 +17,7 @@ import (
 )
 
 type PostgreSQLProvider struct {
-	db     *gorm.DB
-	dbMock *gorm.DB
+	db *gorm.DB
 }
 
 type PostgreSQLProviderOptions struct {
@@ -83,25 +82,6 @@ func NewPostgreSQLProvider(cfg config.PostgreSQLConfig, log *zap.Logger, options
 	}
 
 	dsn := fmt.Sprintf("%s user=%s password=%s dbname=%s", cfg.GetDSN(), cfg.GetUsername(), cfg.GetPassword(), cfg.GetDB())
-
-	//if cfg.GetTLSConfig() != nil {
-	//	p := &PostgreSQLProvider{}
-	//	tlsConfig, err := p.getSSLCertificate(cfg.GetTLSConfig().GetTLSCertificate(), cfg.GetTLSConfig().GetTLSRootCertificate())
-	//	if err != nil {
-	//		return nil, fmt.Errorf("error setting up TLS config: %v", err)
-	//	}
-	//	tlsCertString := string(tlsConfig.Certificates[0].Certificate[0])
-	//	rootCertString := string(tlsConfig.RootCAs.AddCert()[0])
-	//
-	//	dsn += fmt.Sprintf(" sslcert=%s sslkey=%s sslrootcert=%s", tlsCertString, tlsCertString, rootCertString)
-	//	d, _ := sql.Open("", "")
-	//	d.Driver()
-	//	dialector = postgres.New(postgres.Config{
-	//		DSN: dsn,
-	//	})
-	//} else {
-	//	dialector = postgres.Open(dsn)
-	//}
 
 	dialector = postgres.Open(dsn)
 
@@ -169,9 +149,6 @@ func (p *PostgreSQLProvider) getSSLCertificate(certificatePath, rootCertificateP
 }
 
 func (p *PostgreSQLProvider) DB() *gorm.DB {
-	if p.dbMock != nil {
-		return p.dbMock
-	}
 
 	return p.db
 }
